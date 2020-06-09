@@ -22,7 +22,35 @@ func main(){
 
 	// doSum(c)
 
-	doServerStreaming(c)
+	// doServerStreaming(c)
+	 doClientStreaming(c)
+}
+
+func doClientStreaming( c calculatorpbgen.CalculatorServiceClient){
+	fmt.Println("starting to do a compute average Clinet Streaming RPC ....")
+
+stream, err :=	c.ComputeAverage(context.Background())
+	if err != nil{
+		log.Fatalf("error while opening stream: %v", err)
+	}
+
+	numbers := []int32{2,6,12,26,42}
+	for _, number := range numbers {
+		fmt.Printf("sending number %v\n", number)
+		stream.Send(&calculatorpbgen.ComputeAverageRequest{
+			Number: number,
+		})
+	}
+{
+	res, err := stream.CloseAndRecv()
+
+	if err != nil{
+		log.Fatalf("Error while receiving Response: %v", err)
+	}
+
+	fmt.Printf("the average is %v", res.GetAverage())
+}
+
 }
 
 
