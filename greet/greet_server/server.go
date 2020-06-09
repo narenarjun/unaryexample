@@ -15,6 +15,8 @@ import (
 
 type server struct{}
 
+
+
 func (*server) Greet(ctx context.Context, req *greetpbgen.GreetRequest) (*greetpbgen.GreetResponse, error) {
 	fmt.Printf("Greet function was invoked with %v\n", req)
 	firstName := req.GetGreeting().GetFirstName()
@@ -60,6 +62,38 @@ func (*server) LongGreet(stream  greetpbgen.GreetService_LongGreetServer) error{
 	result += " " +firstName + "!"
 	}
 	
+}
+
+
+func (*server) 	GreetEveryone(stream greetpbgen.GreetService_GreetEveryoneServer) error{
+	fmt.Println("GreetEveryone function was invoked with a streaming request ")
+
+	for{
+		req, err := stream.Recv()
+		if err == io.EOF{
+			return nil
+		}
+
+		if err != nil{
+			log.Fatalf("Error while reading client stream request: %v ", err)
+			return err
+		}
+
+		firstName := req.GetGreeting().GetFirstName()
+		result := "hello " + firstName + "!"
+{
+		err := stream.Send(
+			&greetpbgen.GreetEveryoneResponse{
+				Result: result,},
+		)
+
+		if err != nil {
+			log.Fatalf("Error while sending data to client: %v ", err)
+			return err
+		}
+	}
+
+	}
 }
 
 func main() {

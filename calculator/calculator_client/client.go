@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"time"
 
 	calculatorpbgen "github.com/narenarjun/unaryexample/calculator/calculatorpb"
 	"google.golang.org/grpc"
@@ -23,11 +24,61 @@ func main(){
 	// doSum(c)
 
 	// doServerStreaming(c)
-	 doClientStreaming(c)
+
+	//  doClientStreaming(c)
+
+	doBiDiStreaming(c)
+}
+
+func doBiDiStreaming( c calculatorpbgen.CalculatorServiceClient){
+	fmt.Println("starting to do a FindMaximum BiDi Streaming RPC ....")
+
+	stream, err := c.FindMaximum(context.Background())
+	if err != nil {
+		log.Fatalf("Error while opening stream and calling findMaximm: %v", err)
+	}
+
+	waitc := make(chan struct{})
+
+	// goroutine for sending
+
+	go func ()  {
+		numbers := []int32{1,6,4,9,12,2,69}
+
+		for _, number := range numbers {
+			fmt.Printf("sending number: %v\n",number)
+			stream.Send(&calculatorpbgen.FindMaximumRequest{
+				Number: number,
+			})
+			time.Sleep(1000 * time.Millisecond)
+		}
+
+		stream.CloseSend()
+	}()
+
+	// goroutine for receive
+
+	go func() {
+		for {
+		res,err := stream.Recv()
+		if err == io.EOF{
+			break
+		}
+		
+		if err != nil{
+			log.Fatalf("Problem while reading client: %v", err)
+			break 
+		}
+		maximum := res.GetMaximum()
+		log.Printf("received a new maximum of... : %v\n", maximum)
+	}
+		close(waitc)
+	}()
+	<-waitc
 }
 
 func doClientStreaming( c calculatorpbgen.CalculatorServiceClient){
-	fmt.Println("starting to do a compute average Clinet Streaming RPC ....")
+	fmt.Println("starting to do a compute average Client Streaming RPC ....")
 
 stream, err :=	c.ComputeAverage(context.Background())
 	if err != nil{
